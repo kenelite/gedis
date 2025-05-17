@@ -1,8 +1,8 @@
-package stor
+package storage
 
 import (
 	"bufio"
-	"github.com/kenelite/gedis/server"
+	"github.com/kenelite/gedis/internal/response"
 	"os"
 	"sync"
 	"time"
@@ -48,7 +48,7 @@ func (aof *Aof) Close() error {
 	return aof.file.Close()
 }
 
-func (aof *Aof) Write(value server.Value) error {
+func (aof *Aof) Write(value response.Value) error {
 	aof.mu.Lock()
 	defer aof.mu.Unlock()
 
