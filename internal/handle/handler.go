@@ -62,21 +62,24 @@ var HSETs = map[string]map[string]string{}
 var HSETsMu = sync.RWMutex{}
 
 func hset(args []response.Value) response.Value {
-	if len(args) != 3 {
+	if len(args) < 3 || len(args)%2 == 0 {
 		return response.Value{Typ: "error", Str: "ERR wrong number of arguments for 'hset' command"}
 	}
 
 	hash := args[0].Bulk
-	key := args[1].Bulk
-	value := args[2].Bulk
-
 	HSETsMu.Lock()
-	if _, ok := HSETs[hash]; !ok {
-		HSETs[hash] = map[string]string{}
-	}
-	HSETs[hash][key] = value
-	HSETsMu.Unlock()
 
+	for i := 1; i < len(args); i += 2 {
+		key := args[i].Bulk
+		value := args[i+1].Bulk
+
+		if _, ok := HSETs[hash]; !ok {
+			HSETs[hash] = map[string]string{}
+		}
+		HSETs[hash][key] = value
+
+	}
+	HSETsMu.Unlock()
 	return response.Value{Typ: "string", Str: "OK"}
 }
 
