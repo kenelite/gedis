@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
-	"github.com/kenelite/gedis/handle"
-	"github.com/kenelite/gedis/server"
-	"github.com/kenelite/gedis/stor"
+	"github.com/kenelite/gedis/internal/handle"
+	"github.com/kenelite/gedis/internal/response"
+	"github.com/kenelite/gedis/internal/storage"
 	"net"
 	"strings"
 )
@@ -12,14 +12,14 @@ import (
 func main() {
 	fmt.Println("Listening on port :6379")
 
-	// Create a new server
+	// Create a new response
 	l, err := net.Listen("tcp", ":6379")
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	aof, err := stor.NewAof("./database.aof")
+	aof, err := storage.NewAof("./database.aof")
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -36,7 +36,7 @@ func main() {
 	defer conn.Close()
 
 	for {
-		resp := server.NewResp(conn)
+		resp := response.NewResp(conn)
 		value, err := resp.Read()
 		if err != nil {
 			fmt.Println(err)
@@ -56,12 +56,12 @@ func main() {
 		command := strings.ToUpper(value.Array[0].Bulk)
 		args := value.Array[1:]
 
-		writer := server.NewWriter(conn)
+		writer := response.NewWriter(conn)
 
 		handler, ok := handle.Handlers[command]
 		if !ok {
 			fmt.Println("Invalid command: ", command)
-			writer.Write(server.Value{Typ: "string", Str: ""})
+			writer.Write(response.Value{Typ: "string", Str: ""})
 			continue
 		}
 
