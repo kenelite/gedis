@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/kenelite/gedis/internal/connect"
 	"github.com/kenelite/gedis/internal/handle"
 	"github.com/kenelite/gedis/internal/response"
 	"github.com/kenelite/gedis/internal/storage"
@@ -26,14 +27,38 @@ func main() {
 	}
 	defer aof.Close()
 
-	// Listen for connections
-	conn, err := l.Accept()
+	// creat connection pool
+	pool := connect.NewConnectionPool(5, func() (net.Conn, error) {
+		return net.Dial("tcp", "localhost:6379")
+	})
+	defer pool.Close()
+
+	for {
+		conn, err := l.Accept()
+		if err != nil {
+			fmt.Println("Error accepting connection:", err)
+			continue
+		}
+
+		go handleConnection(conn, pool, aof)
+	}
+}
+
+func handleConnection(conn net.Conn, pool *connect.ConnectionPool, aof *storage.Aof) {
+	defer conn.Close()
+
+	pooledConn, err := pool.Get()
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("Error getting connection from pool:", err)
 		return
 	}
+	defer pool.Put(pooledConn)
 
-	defer conn.Close()
+	_, err = pooledConn.Write([]byte("Hello from pool!\n"))
+	if err != nil {
+		fmt.Println("Error writing to pooled connection:", err)
+		return
+	}
 
 	for {
 		resp := response.NewResp(conn)
