@@ -93,7 +93,10 @@ func handleConnection(conn net.Conn, pool *connect.ConnectionPool, aof *storage.
 
 		result := handler(args)
 		if result.Typ != "error" && (command == "SET" || command == "HSET") {
-			aof.Write(value)
+			if err = aof.Write(value); err != nil {
+				fmt.Println("AOF write error:", err)
+			}
+
 		}
 
 		writer.Write(result)
