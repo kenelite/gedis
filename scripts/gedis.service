@@ -1,0 +1,11 @@
+[Unit]
+Description=Gedis Server
+After=syslog.target
+
+[Service]
+ExecStart=/usr/local/bin/gedis
+RestartSec=5s
+Restart=on-success
+
+[Install]
+WantedBy=multi-user.target
