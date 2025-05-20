@@ -2,7 +2,10 @@ package handle
 
 import (
 	"github.com/kenelite/gedis/internal/response"
+	"strconv"
+	"strings"
 	"sync"
+	"time"
 )
 
 var Handlers = map[string]func([]response.Value) response.Value{
@@ -22,7 +25,12 @@ func ping(args []response.Value) response.Value {
 	return response.Value{Typ: "string", Str: args[0].Bulk}
 }
 
-var SETs = map[string]string{}
+type Entry struct {
+	Value     string
+	ExpiresAt time.Time // zero time means no expiration
+}
+
+var SETs = map[string]Entry{}
 var SETsMu = sync.RWMutex{}
 
 func set(args []response.Value) response.Value {
@@ -33,8 +41,22 @@ func set(args []response.Value) response.Value {
 	key := args[0].Bulk
 	value := args[1].Bulk
 
+	var ttl time.Duration
+
+	if len(args) >= 4 && strings.ToUpper(args[2].Bulk) == "EX" {
+		seconds, err := strconv.Atoi(args[3].Bulk)
+		if err != nil {
+			return response.Value{Typ: "error", Str: "ERR invalid TTL value"}
+		}
+		ttl = time.Duration(seconds) * time.Second
+	}
+
 	SETsMu.Lock()
-	SETs[key] = value
+	entry := Entry{Value: value}
+	if ttl > 0 {
+		entry.ExpiresAt = time.Now().Add(ttl)
+	}
+	SETs[key] = entry
 	SETsMu.Unlock()
 
 	return response.Value{Typ: "string", Str: "OK"}
