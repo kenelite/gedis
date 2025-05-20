@@ -15,6 +15,7 @@ var Handlers = map[string]func([]response.Value) response.Value{
 	"HSET":    hset,
 	"HGET":    hget,
 	"HGETALL": hgetall,
+	"EXPIRE":  expire,
 }
 
 func ping(args []response.Value) response.Value {
@@ -34,7 +35,7 @@ var SETs = map[string]Entry{}
 var SETsMu = sync.RWMutex{}
 
 func set(args []response.Value) response.Value {
-	if len(args) != 2 {
+	if len(args) < 2 {
 		return response.Value{Typ: "error", Str: "ERR wrong number of arguments for 'set' command"}
 	}
 
@@ -70,14 +71,18 @@ func get(args []response.Value) response.Value {
 	key := args[0].Bulk
 
 	SETsMu.RLock()
-	value, ok := SETs[key]
+	entry, ok := SETs[key]
 	SETsMu.RUnlock()
 
-	if !ok {
+	if !ok || (entry.ExpiresAt != (time.Time{}) && time.Now().After(entry.ExpiresAt)) {
+		// Optionally remove expired key
+		SETsMu.Lock()
+		delete(SETs, key)
+		SETsMu.Unlock()
 		return response.Value{Typ: "null"}
 	}
 
-	return response.Value{Typ: "bulk", Bulk: value}
+	return response.Value{Typ: "bulk", Bulk: entry.Value}
 }
 
 var HSETs = map[string]map[string]string{}

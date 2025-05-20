@@ -34,6 +34,8 @@ func main() {
 	})
 	defer pool.Close()
 
+	handle.StartKeyExpirationLoop()
+
 	for {
 		conn, err := l.Accept()
 		if err != nil {
@@ -93,10 +95,23 @@ func handleConnection(conn net.Conn, pool *connect.ConnectionPool, aof *storage.
 
 		result := handler(args)
 		if result.Typ != "error" && (command == "SET" || command == "HSET") {
-			if err = aof.Write(value); err != nil {
-				fmt.Println("AOF write error:", err)
-			}
+			aof.Write(value)
 
+			// If SET with EX, write an EXPIRE command
+			if command == "SET" && len(value.Array) >= 4 && strings.ToUpper(value.Array[2].Bulk) == "EX" {
+				key := value.Array[0].Bulk
+				ttl := value.Array[3].Bulk
+
+				expireCmd := response.Value{
+					Typ: "array",
+					Array: []response.Value{
+						{Typ: "bulk", Bulk: "EXPIRE"},
+						{Typ: "bulk", Bulk: key},
+						{Typ: "bulk", Bulk: ttl},
+					},
+				}
+				aof.Write(expireCmd)
+			}
 		}
 
 		writer.Write(result)
