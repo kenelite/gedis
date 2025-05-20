@@ -2,6 +2,7 @@ package response
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"strconv"
@@ -203,5 +204,24 @@ func (w *Writer) Write(v Value) error {
 		return err
 	}
 
+	return nil
+}
+
+func (w *Writer) Flush() error {
+	_, err := w.writer.Write(make([]byte, 0))
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (v *Value) Unmarshal(data []byte) error {
+	resp := NewResp(bytes.NewReader(data))
+	val, err := resp.Read()
+	if err != nil {
+		return err
+	}
+
+	*v = val
 	return nil
 }

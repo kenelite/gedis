@@ -25,6 +25,7 @@ func main() {
 		fmt.Println(err)
 		return
 	}
+	aof.Load()
 	defer aof.Close()
 
 	// creat connection pool
