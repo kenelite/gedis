@@ -65,7 +65,7 @@ func handleConnection(conn net.Conn, pool *connect.ConnectionPool, aof *storage.
 		resp := response.NewResp(conn)
 		value, err := resp.Read()
 		if err != nil {
-			fmt.Println(err)
+			fmt.Println("RESP Read error:", err)
 			return
 		}
 
@@ -87,15 +87,15 @@ func handleConnection(conn net.Conn, pool *connect.ConnectionPool, aof *storage.
 		handler, ok := handle.Handlers[command]
 		if !ok {
 			fmt.Println("Invalid command: ", command)
-			writer.Write(response.Value{Typ: "string", Str: ""})
+			writer.Write(response.Value{Typ: "error", Str: "ERR unknown command: " + command})
 			continue
 		}
 
-		if command == "SET" || command == "HSET" {
+		result := handler(args)
+		if result.Typ != "error" && (command == "SET" || command == "HSET") {
 			aof.Write(value)
 		}
 
-		result := handler(args)
 		writer.Write(result)
 	}
 }
