@@ -47,7 +47,7 @@ func main() {
 	}
 
 	// boot
-	fmt.Println("Listening on port :6379")
+	fmt.Printf("Listening on port :%s\n", port)
 
 	// Create a new response
 	listener, err := net.Listen("tcp", ":6379")
