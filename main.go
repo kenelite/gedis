@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/kenelite/gedis/internal/auth"
 	"github.com/kenelite/gedis/internal/connect"
 	"github.com/kenelite/gedis/internal/handle"
 	"github.com/kenelite/gedis/internal/response"
@@ -11,6 +12,13 @@ import (
 )
 
 func main() {
+
+	// load user and passport
+	err := auth.LoadUsersFromConfig("settings/users.conf")
+	if err != nil {
+		panic(err)
+	}
+
 	fmt.Println("Listening on port :6379")
 
 	// Create a new response
@@ -20,7 +28,7 @@ func main() {
 		return
 	}
 
-	aof, err := storage.NewAof("./database.aof")
+	aof, err := storage.NewAof("settings/database.aof")
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -50,6 +58,7 @@ func main() {
 func handleConnection(conn net.Conn, pool *connect.ConnectionPool, aof *storage.Aof) {
 	defer conn.Close()
 
+	authenticated := false
 	pooledConn, err := pool.Get()
 	if err != nil {
 		fmt.Println("Error getting connection from pool:", err)
@@ -85,6 +94,29 @@ func handleConnection(conn net.Conn, pool *connect.ConnectionPool, aof *storage.
 		args := value.Array[1:]
 
 		writer := response.NewWriter(conn)
+
+		// Special handling for AUTH command
+		if command == "AUTH" {
+			if len(args) != 2 {
+				writer.Write(response.Value{Typ: "error", Str: "ERR wrong number of arguments for 'AUTH'"})
+				continue
+			}
+			username := args[0].Bulk
+			password := args[1].Bulk
+			if auth.CheckUser(username, password) {
+				authenticated = true
+				writer.Write(response.Value{Typ: "string", Str: "OK"})
+			} else {
+				writer.Write(response.Value{Typ: "error", Str: "ERR invalid username or password"})
+			}
+			continue
+		}
+
+		// Require authentication for all commands except AUTH
+		if !authenticated {
+			writer.Write(response.Value{Typ: "error", Str: "NOAUTH Authentication required"})
+			continue
+		}
 
 		handler, ok := handle.Handlers[command]
 		if !ok {
