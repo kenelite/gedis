@@ -3,11 +3,10 @@ package client
 import (
 	"bufio"
 	"fmt"
+	"github.com/kenelite/gedis/cli/resp"
 	"net"
 	"os"
 	"strings"
-
-	"github.com/kenelite/gedis-cli/resp"
 )
 
 type Client struct {

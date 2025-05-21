@@ -2,9 +2,8 @@ package main
 
 import (
 	"fmt"
+	"github.com/kenelite/gedis/cli/client"
 	"os"
-
-	"github.com/kenelite/gedis-cli/client"
 )
 
 func main() {
