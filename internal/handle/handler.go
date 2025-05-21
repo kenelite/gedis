@@ -17,6 +17,11 @@ var Handlers = map[string]func([]response.Value) response.Value{
 	"HGETALL": hgetall,
 	"EXPIRE":  expire,
 	"TTL":     ttl,
+	"LPUSH":   lpush,
+	"RPUSH":   rpush,
+	"LPOP":    lpop,
+	"RPOP":    rpop,
+	"LRANGE":  lrange,
 }
 
 func ping(args []response.Value) response.Value {
@@ -32,8 +37,10 @@ type Entry struct {
 	ExpiresAt time.Time // zero time means no expiration
 }
 
-var SETs = map[string]Entry{}
-var SETsMu = sync.RWMutex{}
+var (
+	SETs   = map[string]Entry{}
+	SETsMu = sync.RWMutex{}
+)
 
 func set(args []response.Value) response.Value {
 	if len(args) < 2 {
@@ -84,74 +91,6 @@ func get(args []response.Value) response.Value {
 	}
 
 	return response.Value{Typ: "bulk", Bulk: entry.Value}
-}
-
-var HSETs = map[string]map[string]string{}
-var HSETsMu = sync.RWMutex{}
-
-func hset(args []response.Value) response.Value {
-	if len(args) < 3 || len(args)%2 == 0 {
-		return response.Value{Typ: "error", Str: "ERR wrong number of arguments for 'hset' command"}
-	}
-
-	hash := args[0].Bulk
-	HSETsMu.Lock()
-
-	for i := 1; i < len(args); i += 2 {
-		key := args[i].Bulk
-		value := args[i+1].Bulk
-
-		if _, ok := HSETs[hash]; !ok {
-			HSETs[hash] = map[string]string{}
-		}
-		HSETs[hash][key] = value
-
-	}
-	HSETsMu.Unlock()
-	return response.Value{Typ: "string", Str: "OK"}
-}
-
-func hget(args []response.Value) response.Value {
-	if len(args) != 2 {
-		return response.Value{Typ: "error", Str: "ERR wrong number of arguments for 'hget' command"}
-	}
-
-	hash := args[0].Bulk
-	key := args[1].Bulk
-
-	HSETsMu.RLock()
-	value, ok := HSETs[hash][key]
-	HSETsMu.RUnlock()
-
-	if !ok {
-		return response.Value{Typ: "null"}
-	}
-
-	return response.Value{Typ: "bulk", Bulk: value}
-}
-
-func hgetall(args []response.Value) response.Value {
-	if len(args) != 1 {
-		return response.Value{Typ: "error", Str: "ERR wrong number of arguments for 'hgetall' command"}
-	}
-
-	hash := args[0].Bulk
-
-	HSETsMu.RLock()
-	value, ok := HSETs[hash]
-	HSETsMu.RUnlock()
-
-	if !ok {
-		return response.Value{Typ: "null"}
-	}
-
-	values := []response.Value{}
-	for k, v := range value {
-		values = append(values, response.Value{Typ: "bulk", Bulk: k})
-		values = append(values, response.Value{Typ: "bulk", Bulk: v})
-	}
-
-	return response.Value{Typ: "array", Array: values}
 }
 
 func ttl(args []response.Value) response.Value {
