@@ -152,7 +152,8 @@ Provides a native Go API to talk to Gedis servers.
 Install & Import:
 
 ```bash
-import "github.com/yourname/gedis/internal/sdk"
+import "github.com/kenelite/gedis/internal/sdk"
+
 ```
 
 Example:
