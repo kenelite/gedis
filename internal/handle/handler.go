@@ -26,6 +26,9 @@ var Handlers = map[string]func([]response.Value) response.Value{
 	"SREM":     srem,
 	"SMEMBERS": smembers,
 	"SCARD":    scard,
+	"SUNION":   sunion,
+	"SINTER":   sinter,
+	"SDIFF":    sdiff,
 }
 
 func ping(args []response.Value) response.Value {
