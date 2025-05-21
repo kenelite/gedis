@@ -103,3 +103,104 @@ func scard(args []response.Value) response.Value {
 
 	return response.Value{Typ: "integer", Num: len(members)}
 }
+
+func sunion(args []response.Value) response.Value {
+	if len(args) < 1 {
+		return response.Value{Typ: "error", Str: "ERR wrong number of arguments for 'SUNION'"}
+	}
+
+	setsMu.RLock()
+	defer setsMu.RUnlock()
+
+	union := make(map[string]struct{})
+	for _, arg := range args {
+		key := arg.Bulk
+		if members, exists := sets[key]; exists {
+			for member := range members {
+				union[member] = struct{}{}
+			}
+		}
+	}
+
+	var result []response.Value
+	for member := range union {
+		result = append(result, response.Value{Typ: "bulk", Bulk: member})
+	}
+	return response.Value{Typ: "array", Array: result}
+}
+
+func sinter(args []response.Value) response.Value {
+	if len(args) < 1 {
+		return response.Value{Typ: "error", Str: "ERR wrong number of arguments for 'SINTER'"}
+	}
+
+	setsMu.RLock()
+	defer setsMu.RUnlock()
+
+	// Initialize result with first set
+	firstKey := args[0].Bulk
+	base, exists := sets[firstKey]
+	if !exists {
+		return response.Value{Typ: "array", Array: []response.Value{}}
+	}
+
+	intersection := make(map[string]struct{})
+	for member := range base {
+		intersection[member] = struct{}{}
+	}
+
+	// Intersect with all other sets
+	for _, arg := range args[1:] {
+		key := arg.Bulk
+		curr, exists := sets[key]
+		if !exists {
+			return response.Value{Typ: "array", Array: []response.Value{}}
+		}
+		for member := range intersection {
+			if _, found := curr[member]; !found {
+				delete(intersection, member)
+			}
+		}
+	}
+
+	var result []response.Value
+	for member := range intersection {
+		result = append(result, response.Value{Typ: "bulk", Bulk: member})
+	}
+	return response.Value{Typ: "array", Array: result}
+}
+
+func sdiff(args []response.Value) response.Value {
+	if len(args) < 1 {
+		return response.Value{Typ: "error", Str: "ERR wrong number of arguments for 'SDIFF'"}
+	}
+
+	setsMu.RLock()
+	defer setsMu.RUnlock()
+
+	firstKey := args[0].Bulk
+	base, exists := sets[firstKey]
+	if !exists {
+		return response.Value{Typ: "array", Array: []response.Value{}}
+	}
+
+	diff := make(map[string]struct{})
+	for member := range base {
+		diff[member] = struct{}{}
+	}
+
+	for _, arg := range args[1:] {
+		key := arg.Bulk
+		if s, exists := sets[key]; exists {
+			for member := range s {
+				delete(diff, member)
+			}
+		}
+	}
+
+	var result []response.Value
+	for member := range diff {
+		result = append(result, response.Value{Typ: "bulk", Bulk: member})
+	}
+	return response.Value{Typ: "array", Array: result}
+}
