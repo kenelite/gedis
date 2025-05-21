@@ -16,6 +16,7 @@ var Handlers = map[string]func([]response.Value) response.Value{
 	"HGET":    hget,
 	"HGETALL": hgetall,
 	"EXPIRE":  expire,
+	"TTL":     ttl,
 }
 
 func ping(args []response.Value) response.Value {
@@ -151,4 +152,35 @@ func hgetall(args []response.Value) response.Value {
 	}
 
 	return response.Value{Typ: "array", Array: values}
+}
+
+func ttl(args []response.Value) response.Value {
+	if len(args) != 1 {
+		return response.Value{Typ: "error", Str: "ERR wrong number of arguments for 'ttl' command"}
+	}
+
+	key := args[0].Bulk
+
+	SETsMu.RLock()
+	entry, ok := SETs[key]
+	SETsMu.RUnlock()
+
+	if !ok {
+		return response.Value{Typ: "integer", Num: -2} // Key doesn't exist
+	}
+
+	if entry.ExpiresAt.IsZero() {
+		return response.Value{Typ: "integer", Num: -1} // No expiration set
+	}
+
+	remaining := int(time.Until(entry.ExpiresAt).Seconds())
+	if remaining <= 0 {
+		// Expired — clean up
+		SETsMu.Lock()
+		delete(SETs, key)
+		SETsMu.Unlock()
+		return response.Value{Typ: "integer", Num: -2}
+	}
+
+	return response.Value{Typ: "integer", Num: remaining}
 }
