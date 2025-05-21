@@ -3,11 +3,13 @@ package main
 import (
 	"fmt"
 	"github.com/kenelite/gedis/internal/auth"
+	"github.com/kenelite/gedis/internal/config"
 	"github.com/kenelite/gedis/internal/connect"
 	"github.com/kenelite/gedis/internal/handle"
 	"github.com/kenelite/gedis/internal/response"
 	"github.com/kenelite/gedis/internal/storage"
 	"net"
+	"strconv"
 	"strings"
 )
 
@@ -19,16 +21,42 @@ func main() {
 		panic(err)
 	}
 
+	// load config
+	cfg, err := config.Load("settings/server.conf")
+	if err != nil {
+		fmt.Println("Failed to load config:", err)
+		return
+	}
+
+	port := cfg.Get("server", "port")
+	if port == "" {
+		port = "6379" // default port
+	}
+
+	aofPath := cfg.Get("server", "aof_path")
+	if aofPath == "" {
+		aofPath = "settings/database.aof"
+	}
+
+	aofSyncIntervalStr := cfg.Get("server", "aof_sync_interval_sec")
+	aofSyncInterval := 1 // default 1 second
+	if aofSyncIntervalStr != "" {
+		if val, err := strconv.Atoi(aofSyncIntervalStr); err == nil {
+			aofSyncInterval = val
+		}
+	}
+
+	// boot
 	fmt.Println("Listening on port :6379")
 
 	// Create a new response
-	l, err := net.Listen("tcp", ":6379")
+	listener, err := net.Listen("tcp", ":6379")
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	aof, err := storage.NewAof("settings/database.aof")
+	aof, err := storage.NewAofWithInterval(aofPath, aofSyncInterval)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -45,7 +73,7 @@ func main() {
 	handle.StartKeyExpirationLoop()
 
 	for {
-		conn, err := l.Accept()
+		conn, err := listener.Accept()
 		if err != nil {
 			fmt.Println("Error accepting connection:", err)
 			continue
