@@ -99,3 +99,91 @@ func ttl(args []response.Value) response.Value {
 
 	return response.Value{Typ: "integer", Num: remaining}
 }
+
+func del(args []response.Value) response.Value {
+	if len(args) < 1 {
+		return response.Value{Typ: "error", Str: "ERR wrong number of arguments for 'DEL'"}
+	}
+
+	deleted := 0
+	SETsMu.Lock()
+	defer SETsMu.Unlock()
+
+	for _, arg := range args {
+		key := arg.Bulk
+		if _, exists := SETs[key]; exists {
+			delete(SETs, key)
+			deleted++
+		}
+	}
+
+	return response.Value{Typ: "integer", Num: deleted}
+}
+
+func incr(args []response.Value) response.Value {
+	if len(args) != 1 {
+		return response.Value{Typ: "error", Str: "ERR wrong number of arguments for 'INCR'"}
+	}
+	return incrbyImpl(args[0].Bulk, 1)
+}
+
+func decr(args []response.Value) response.Value {
+	if len(args) != 1 {
+		return response.Value{Typ: "error", Str: "ERR wrong number of arguments for 'DECR'"}
+	}
+	return incrbyImpl(args[0].Bulk, -1)
+}
+
+func incrby(args []response.Value) response.Value {
+	if len(args) != 2 {
+		return response.Value{Typ: "error", Str: "ERR wrong number of arguments for 'INCRBY'"}
+	}
+
+	amount, err := strconv.Atoi(args[1].Bulk)
+	if err != nil {
+		return response.Value{Typ: "error", Str: "ERR value is not an integer or out of range"}
+	}
+
+	return incrbyImpl(args[0].Bulk, amount)
+}
+
+func decrby(args []response.Value) response.Value {
+	if len(args) != 2 {
+		return response.Value{Typ: "error", Str: "ERR wrong number of arguments for 'DECRBY'"}
+	}
+
+	amount, err := strconv.Atoi(args[1].Bulk)
+	if err != nil {
+		return response.Value{Typ: "error", Str: "ERR value is not an integer or out of range"}
+	}
+
+	return incrbyImpl(args[0].Bulk, -amount)
+}
+
+func incrbyImpl(key string, delta int) response.Value {
+	SETsMu.Lock()
+	defer SETsMu.Unlock()
+
+	entry, exists := SETs[key]
+	if exists && !entry.ExpiresAt.IsZero() && time.Now().After(entry.ExpiresAt) {
+		delete(SETs, key)
+		exists = false
+	}
+
+	var val int
+	if exists {
+		var err error
+		val, err = strconv.Atoi(entry.Value)
+		if err != nil {
+			return response.Value{Typ: "error", Str: "ERR value is not an integer or out of range"}
+		}
+	}
+
+	val += delta
+	SETs[key] = Entry{
+		Value:     strconv.Itoa(val),
+		ExpiresAt: entry.ExpiresAt,
+	}
+
+	return response.Value{Typ: "integer", Num: val}
+}
