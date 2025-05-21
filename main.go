@@ -154,7 +154,11 @@ func handleConnection(conn net.Conn, pool *connect.ConnectionPool, aof *storage.
 		}
 
 		result := handler(args)
-		if result.Typ != "error" && (command == "SET" || command == "HSET") {
+		if result.Typ != "error" && (command == "SET" ||
+			command == "HSET" ||
+			command == "LPUSH" ||
+			command == "RPUSH" ||
+			command == "SADD") {
 			aof.Write(value)
 
 			// If SET with EX, write an EXPIRE command

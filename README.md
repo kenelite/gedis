@@ -1,14 +1,21 @@
-# gedis
-build redis from scratch
+# Feature
+
+## Data structures
+
+### String
+
+### List
+
+### Hash
+
+### Set
+
+### Zset
 
 
-# Handler
-more commands to support
+# Function
 
-# Load Aof
-
-
-# Proxy
+## User and Password Authentication
 
 
-# CMD: redis-cli
+## Aof Backup and reload
