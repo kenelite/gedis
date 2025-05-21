@@ -2,7 +2,10 @@ package handle
 
 import (
 	"github.com/kenelite/gedis/internal/response"
+	"strconv"
+	"strings"
 	"sync"
+	"time"
 )
 
 var Handlers = map[string]func([]response.Value) response.Value{
@@ -12,6 +15,8 @@ var Handlers = map[string]func([]response.Value) response.Value{
 	"HSET":    hset,
 	"HGET":    hget,
 	"HGETALL": hgetall,
+	"EXPIRE":  expire,
+	"TTL":     ttl,
 }
 
 func ping(args []response.Value) response.Value {
@@ -22,19 +27,38 @@ func ping(args []response.Value) response.Value {
 	return response.Value{Typ: "string", Str: args[0].Bulk}
 }
 
-var SETs = map[string]string{}
+type Entry struct {
+	Value     string
+	ExpiresAt time.Time // zero time means no expiration
+}
+
+var SETs = map[string]Entry{}
 var SETsMu = sync.RWMutex{}
 
 func set(args []response.Value) response.Value {
-	if len(args) != 2 {
+	if len(args) < 2 {
 		return response.Value{Typ: "error", Str: "ERR wrong number of arguments for 'set' command"}
 	}
 
 	key := args[0].Bulk
 	value := args[1].Bulk
 
+	var ttl time.Duration
+
+	if len(args) >= 4 && strings.ToUpper(args[2].Bulk) == "EX" {
+		seconds, err := strconv.Atoi(args[3].Bulk)
+		if err != nil {
+			return response.Value{Typ: "error", Str: "ERR invalid TTL value"}
+		}
+		ttl = time.Duration(seconds) * time.Second
+	}
+
 	SETsMu.Lock()
-	SETs[key] = value
+	entry := Entry{Value: value}
+	if ttl > 0 {
+		entry.ExpiresAt = time.Now().Add(ttl)
+	}
+	SETs[key] = entry
 	SETsMu.Unlock()
 
 	return response.Value{Typ: "string", Str: "OK"}
@@ -48,14 +72,18 @@ func get(args []response.Value) response.Value {
 	key := args[0].Bulk
 
 	SETsMu.RLock()
-	value, ok := SETs[key]
+	entry, ok := SETs[key]
 	SETsMu.RUnlock()
 
-	if !ok {
+	if !ok || (entry.ExpiresAt != (time.Time{}) && time.Now().After(entry.ExpiresAt)) {
+		// Optionally remove expired key
+		SETsMu.Lock()
+		delete(SETs, key)
+		SETsMu.Unlock()
 		return response.Value{Typ: "null"}
 	}
 
-	return response.Value{Typ: "bulk", Bulk: value}
+	return response.Value{Typ: "bulk", Bulk: entry.Value}
 }
 
 var HSETs = map[string]map[string]string{}
@@ -124,4 +152,35 @@ func hgetall(args []response.Value) response.Value {
 	}
 
 	return response.Value{Typ: "array", Array: values}
+}
+
+func ttl(args []response.Value) response.Value {
+	if len(args) != 1 {
+		return response.Value{Typ: "error", Str: "ERR wrong number of arguments for 'ttl' command"}
+	}
+
+	key := args[0].Bulk
+
+	SETsMu.RLock()
+	entry, ok := SETs[key]
+	SETsMu.RUnlock()
+
+	if !ok {
+		return response.Value{Typ: "integer", Num: -2} // Key doesn't exist
+	}
+
+	if entry.ExpiresAt.IsZero() {
+		return response.Value{Typ: "integer", Num: -1} // No expiration set
+	}
+
+	remaining := int(time.Until(entry.ExpiresAt).Seconds())
+	if remaining <= 0 {
+		// Expired — clean up
+		SETsMu.Lock()
+		delete(SETs, key)
+		SETsMu.Unlock()
+		return response.Value{Typ: "integer", Num: -2}
+	}
+
+	return response.Value{Typ: "integer", Num: remaining}
 }

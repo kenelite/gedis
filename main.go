@@ -25,6 +25,7 @@ func main() {
 		fmt.Println(err)
 		return
 	}
+	aof.Load()
 	defer aof.Close()
 
 	// creat connection pool
@@ -32,6 +33,8 @@ func main() {
 		return net.Dial("tcp", "localhost:6379")
 	})
 	defer pool.Close()
+
+	handle.StartKeyExpirationLoop()
 
 	for {
 		conn, err := l.Accept()
@@ -64,7 +67,7 @@ func handleConnection(conn net.Conn, pool *connect.ConnectionPool, aof *storage.
 		resp := response.NewResp(conn)
 		value, err := resp.Read()
 		if err != nil {
-			fmt.Println(err)
+			fmt.Println("RESP Read error:", err)
 			return
 		}
 
@@ -86,15 +89,31 @@ func handleConnection(conn net.Conn, pool *connect.ConnectionPool, aof *storage.
 		handler, ok := handle.Handlers[command]
 		if !ok {
 			fmt.Println("Invalid command: ", command)
-			writer.Write(response.Value{Typ: "string", Str: ""})
+			writer.Write(response.Value{Typ: "error", Str: "ERR unknown command: " + command})
 			continue
 		}
 
-		if command == "SET" || command == "HSET" {
+		result := handler(args)
+		if result.Typ != "error" && (command == "SET" || command == "HSET") {
 			aof.Write(value)
+
+			// If SET with EX, write an EXPIRE command
+			if command == "SET" && len(value.Array) >= 4 && strings.ToUpper(value.Array[2].Bulk) == "EX" {
+				key := value.Array[0].Bulk
+				ttl := value.Array[3].Bulk
+
+				expireCmd := response.Value{
+					Typ: "array",
+					Array: []response.Value{
+						{Typ: "bulk", Bulk: "EXPIRE"},
+						{Typ: "bulk", Bulk: key},
+						{Typ: "bulk", Bulk: ttl},
+					},
+				}
+				aof.Write(expireCmd)
+			}
 		}
 
-		result := handler(args)
 		writer.Write(result)
 	}
 }

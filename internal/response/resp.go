@@ -2,6 +2,7 @@ package response
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"strconv"
@@ -135,6 +136,8 @@ func (v Value) Marshal() []byte {
 		return v.marshallNull()
 	case "error":
 		return v.marshallError()
+	case "integer":
+		return v.marshalInteger()
 	default:
 		return []byte{}
 	}
@@ -187,6 +190,14 @@ func (v Value) marshallNull() []byte {
 	return []byte("$-1\r\n")
 }
 
+func (v Value) marshalInteger() []byte {
+	var bytes []byte
+	bytes = append(bytes, INTEGER)
+	bytes = append(bytes, strconv.Itoa(v.Num)...)
+	bytes = append(bytes, '\r', '\n')
+	return bytes
+}
+
 type Writer struct {
 	writer io.Writer
 }
@@ -203,5 +214,24 @@ func (w *Writer) Write(v Value) error {
 		return err
 	}
 
+	return nil
+}
+
+func (w *Writer) Flush() error {
+	_, err := w.writer.Write(make([]byte, 0))
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (v *Value) Unmarshal(data []byte) error {
+	resp := NewResp(bytes.NewReader(data))
+	val, err := resp.Read()
+	if err != nil {
+		return err
+	}
+
+	*v = val
 	return nil
 }
