@@ -158,7 +158,12 @@ func handleConnection(conn net.Conn, pool *connect.ConnectionPool, aof *storage.
 			command == "HSET" ||
 			command == "LPUSH" ||
 			command == "RPUSH" ||
-			command == "SADD") {
+			command == "SADD" ||
+			command == "DEL" ||
+			command == "INCR" ||
+			command == "DECY" ||
+			command == "INCRBY" ||
+			command == "DECRBY") {
 			aof.Write(value)
 
 			// If SET with EX, write an EXPIRE command

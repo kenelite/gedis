@@ -5,27 +5,46 @@ import (
 )
 
 var Handlers = map[string]func([]response.Value) response.Value{
-	"PING":    ping,
-	"SET":     set,
-	"GET":     get,
+	"PING": ping,
+
+	//kv
+	"SET":    set,
+	"GET":    get,
+	"EXPIRE": expire,
+	"TTL":    ttl,
+
+	//kv
+	"DEL":    del,
+	"INCR":   incr,
+	"DECR":   decr,
+	"INCRBY": incrby,
+	"DECRBY": decrby,
+
+	//hash
 	"HSET":    hset,
 	"HGET":    hget,
 	"HGETALL": hgetall,
-	"EXPIRE":  expire,
-	"TTL":     ttl,
-	"LPUSH":   lpush,
-	"RPUSH":   rpush,
-	"LPOP":    lpop,
-	"RPOP":    rpop,
-	"LRANGE":  lrange,
-	"ZADD":    zadd,
-	"ZRANGE":  zrange,
-	"ZREM":    zrem,
 
+	//list
+	"LPUSH":  lpush,
+	"RPUSH":  rpush,
+	"LPOP":   lpop,
+	"RPOP":   rpop,
+	"LRANGE": lrange,
+
+	//set
 	"SADD":     sadd,
 	"SREM":     srem,
 	"SMEMBERS": smembers,
 	"SCARD":    scard,
+	"SUNION":   sunion,
+	"SINTER":   sinter,
+	"SDIFF":    sdiff,
+
+	//zset
+	"ZADD":   zadd,
+	"ZRANGE": zrange,
+	"ZREM":   zrem,
 }
 
 func ping(args []response.Value) response.Value {
