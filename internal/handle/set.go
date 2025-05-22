@@ -10,7 +10,7 @@ var (
 	setsMu sync.RWMutex
 )
 
-func sadd(args []response.Value) response.Value {
+func Sadd(args []response.Value) response.Value {
 	if len(args) < 2 {
 		return response.Value{Typ: "error", Str: "ERR wrong number of arguments for 'SADD'"}
 	}
@@ -35,7 +35,7 @@ func sadd(args []response.Value) response.Value {
 	return response.Value{Typ: "integer", Num: added}
 }
 
-func srem(args []response.Value) response.Value {
+func Srem(args []response.Value) response.Value {
 	if len(args) < 2 {
 		return response.Value{Typ: "error", Str: "ERR wrong number of arguments for 'SREM'"}
 	}
@@ -65,7 +65,7 @@ func srem(args []response.Value) response.Value {
 	return response.Value{Typ: "integer", Num: removed}
 }
 
-func smembers(args []response.Value) response.Value {
+func Smembers(args []response.Value) response.Value {
 	if len(args) != 1 {
 		return response.Value{Typ: "error", Str: "ERR wrong number of arguments for 'SMEMBERS'"}
 	}
@@ -87,7 +87,7 @@ func smembers(args []response.Value) response.Value {
 	return response.Value{Typ: "array", Array: result}
 }
 
-func scard(args []response.Value) response.Value {
+func Scard(args []response.Value) response.Value {
 	if len(args) != 1 {
 		return response.Value{Typ: "error", Str: "ERR wrong number of arguments for 'SCARD'"}
 	}
@@ -104,7 +104,7 @@ func scard(args []response.Value) response.Value {
 	return response.Value{Typ: "integer", Num: len(members)}
 }
 
-func sunion(args []response.Value) response.Value {
+func Sunion(args []response.Value) response.Value {
 	if len(args) < 1 {
 		return response.Value{Typ: "error", Str: "ERR wrong number of arguments for 'SUNION'"}
 	}
@@ -129,7 +129,7 @@ func sunion(args []response.Value) response.Value {
 	return response.Value{Typ: "array", Array: result}
 }
 
-func sinter(args []response.Value) response.Value {
+func Sinter(args []response.Value) response.Value {
 	if len(args) < 1 {
 		return response.Value{Typ: "error", Str: "ERR wrong number of arguments for 'SINTER'"}
 	}
@@ -170,7 +170,7 @@ func sinter(args []response.Value) response.Value {
 	return response.Value{Typ: "array", Array: result}
 }
 
-func sdiff(args []response.Value) response.Value {
+func Sdiff(args []response.Value) response.Value {
 	if len(args) < 1 {
 		return response.Value{Typ: "error", Str: "ERR wrong number of arguments for 'SDIFF'"}
 	}

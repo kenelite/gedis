@@ -5,6 +5,7 @@ import (
 	"github.com/kenelite/gedis/internal/auth"
 	"github.com/kenelite/gedis/internal/config"
 	"github.com/kenelite/gedis/internal/connect"
+	"github.com/kenelite/gedis/internal/executor"
 	"github.com/kenelite/gedis/internal/handle"
 	"github.com/kenelite/gedis/internal/response"
 	"github.com/kenelite/gedis/internal/storage"
@@ -56,11 +57,15 @@ func main() {
 		return
 	}
 
+	// Load from snapshot before AOF
+	storage.LoadRDB("dump.rdb")
+
 	aof, err := storage.NewAofWithInterval(aofPath, aofSyncInterval)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
+
 	aof.Load()
 	defer aof.Close()
 
@@ -146,14 +151,8 @@ func handleConnection(conn net.Conn, pool *connect.ConnectionPool, aof *storage.
 			continue
 		}
 
-		handler, ok := handle.Handlers[command]
-		if !ok {
-			fmt.Println("Invalid command: ", command)
-			writer.Write(response.Value{Typ: "error", Str: "ERR unknown command: " + command})
-			continue
-		}
+		result := executor.Execute(command, args)
 
-		result := handler(args)
 		if result.Typ != "error" && (command == "SET" ||
 			command == "HSET" ||
 			command == "LPUSH" ||

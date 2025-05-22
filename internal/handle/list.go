@@ -11,7 +11,7 @@ var (
 	ListsMu sync.RWMutex
 )
 
-func lpush(args []response.Value) response.Value {
+func Lpush(args []response.Value) response.Value {
 	if len(args) < 2 {
 		return response.Value{Typ: "error", Str: "ERR wrong number of arguments for 'lpush'"}
 	}
@@ -27,7 +27,7 @@ func lpush(args []response.Value) response.Value {
 	return response.Value{Typ: "integer", Num: len(Lists[key])}
 }
 
-func rpush(args []response.Value) response.Value {
+func Rpush(args []response.Value) response.Value {
 	if len(args) < 2 {
 		return response.Value{Typ: "error", Str: "ERR wrong number of arguments for 'rpush'"}
 	}
@@ -43,7 +43,7 @@ func rpush(args []response.Value) response.Value {
 	return response.Value{Typ: "integer", Num: len(Lists[key])}
 }
 
-func lpop(args []response.Value) response.Value {
+func Lpop(args []response.Value) response.Value {
 	if len(args) != 1 {
 		return response.Value{Typ: "error", Str: "ERR wrong number of arguments for 'lpop'"}
 	}
@@ -63,7 +63,7 @@ func lpop(args []response.Value) response.Value {
 	return response.Value{Typ: "bulk", Bulk: val}
 }
 
-func rpop(args []response.Value) response.Value {
+func Rpop(args []response.Value) response.Value {
 	if len(args) != 1 {
 		return response.Value{Typ: "error", Str: "ERR wrong number of arguments for 'rpop'"}
 	}
@@ -83,7 +83,7 @@ func rpop(args []response.Value) response.Value {
 	return response.Value{Typ: "bulk", Bulk: val}
 }
 
-func lrange(args []response.Value) response.Value {
+func Lrange(args []response.Value) response.Value {
 	if len(args) != 3 {
 		return response.Value{Typ: "error", Str: "ERR wrong number of arguments for 'lrange'"}
 	}

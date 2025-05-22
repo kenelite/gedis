@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func expire(args []response.Value) response.Value {
+func Expire(args []response.Value) response.Value {
 	if len(args) != 2 {
 		return response.Value{Typ: "error", Str: "ERR wrong number of arguments for 'expire' command"}
 	}
