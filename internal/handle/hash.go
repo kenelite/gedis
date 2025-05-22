@@ -10,7 +10,7 @@ var (
 	HSETsMu = sync.RWMutex{}
 )
 
-func hset(args []response.Value) response.Value {
+func Hset(args []response.Value) response.Value {
 	if len(args) < 3 || len(args)%2 == 0 {
 		return response.Value{Typ: "error", Str: "ERR wrong number of arguments for 'hset' command"}
 	}
@@ -32,7 +32,7 @@ func hset(args []response.Value) response.Value {
 	return response.Value{Typ: "string", Str: "OK"}
 }
 
-func hget(args []response.Value) response.Value {
+func Hget(args []response.Value) response.Value {
 	if len(args) != 2 {
 		return response.Value{Typ: "error", Str: "ERR wrong number of arguments for 'hget' command"}
 	}
@@ -51,7 +51,7 @@ func hget(args []response.Value) response.Value {
 	return response.Value{Typ: "bulk", Bulk: value}
 }
 
-func hgetall(args []response.Value) response.Value {
+func Hgetall(args []response.Value) response.Value {
 	if len(args) != 1 {
 		return response.Value{Typ: "error", Str: "ERR wrong number of arguments for 'hgetall' command"}
 	}

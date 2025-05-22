@@ -18,7 +18,7 @@ var (
 	SETsMu = sync.RWMutex{}
 )
 
-func set(args []response.Value) response.Value {
+func Set(args []response.Value) response.Value {
 	if len(args) < 2 {
 		return response.Value{Typ: "error", Str: "ERR wrong number of arguments for 'set' command"}
 	}
@@ -47,7 +47,7 @@ func set(args []response.Value) response.Value {
 	return response.Value{Typ: "string", Str: "OK"}
 }
 
-func get(args []response.Value) response.Value {
+func Get(args []response.Value) response.Value {
 	if len(args) != 1 {
 		return response.Value{Typ: "error", Str: "ERR wrong number of arguments for 'get' command"}
 	}
@@ -69,7 +69,7 @@ func get(args []response.Value) response.Value {
 	return response.Value{Typ: "bulk", Bulk: entry.Value}
 }
 
-func ttl(args []response.Value) response.Value {
+func Ttl(args []response.Value) response.Value {
 	if len(args) != 1 {
 		return response.Value{Typ: "error", Str: "ERR wrong number of arguments for 'ttl' command"}
 	}
@@ -100,7 +100,7 @@ func ttl(args []response.Value) response.Value {
 	return response.Value{Typ: "integer", Num: remaining}
 }
 
-func del(args []response.Value) response.Value {
+func Del(args []response.Value) response.Value {
 	if len(args) < 1 {
 		return response.Value{Typ: "error", Str: "ERR wrong number of arguments for 'DEL'"}
 	}
@@ -120,21 +120,21 @@ func del(args []response.Value) response.Value {
 	return response.Value{Typ: "integer", Num: deleted}
 }
 
-func incr(args []response.Value) response.Value {
+func Incr(args []response.Value) response.Value {
 	if len(args) != 1 {
 		return response.Value{Typ: "error", Str: "ERR wrong number of arguments for 'INCR'"}
 	}
 	return incrbyImpl(args[0].Bulk, 1)
 }
 
-func decr(args []response.Value) response.Value {
+func Decr(args []response.Value) response.Value {
 	if len(args) != 1 {
 		return response.Value{Typ: "error", Str: "ERR wrong number of arguments for 'DECR'"}
 	}
 	return incrbyImpl(args[0].Bulk, -1)
 }
 
-func incrby(args []response.Value) response.Value {
+func Incrby(args []response.Value) response.Value {
 	if len(args) != 2 {
 		return response.Value{Typ: "error", Str: "ERR wrong number of arguments for 'INCRBY'"}
 	}
@@ -147,7 +147,7 @@ func incrby(args []response.Value) response.Value {
 	return incrbyImpl(args[0].Bulk, amount)
 }
 
-func decrby(args []response.Value) response.Value {
+func Decrby(args []response.Value) response.Value {
 	if len(args) != 2 {
 		return response.Value{Typ: "error", Str: "ERR wrong number of arguments for 'DECRBY'"}
 	}

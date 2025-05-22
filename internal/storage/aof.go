@@ -3,7 +3,7 @@ package storage
 import (
 	"bufio"
 	"fmt"
-	"github.com/kenelite/gedis/internal/handle"
+	"github.com/kenelite/gedis/internal/executor"
 	"github.com/kenelite/gedis/internal/response"
 	"io"
 	"os"
@@ -119,13 +119,7 @@ func (aof *Aof) Load() error {
 		}
 
 		cmd := strings.ToUpper(cmdVal.Bulk)
-		handler, ok := handle.Handlers[cmd]
-		if !ok {
-			continue // unknown command
-		}
-
-		// Execute the command to restore in-memory state
-		handler(val.Array[1:])
+		_ = executor.Execute(cmd, val.Array[1:])
 	}
 
 	return nil

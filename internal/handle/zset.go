@@ -22,14 +22,7 @@ var (
 	ZSetsMu sync.RWMutex
 )
 
-func init() {
-	Handlers["ZADD"] = zadd
-	Handlers["ZRANGE"] = zrange
-	Handlers["ZREM"] = zrem
-	Handlers["ZCARD"] = zcard
-}
-
-func zadd(args []response.Value) response.Value {
+func Zadd(args []response.Value) response.Value {
 	if len(args) < 3 || len(args)%2 != 1 {
 		return response.Value{Typ: "error", Str: "ERR syntax: ZADD key score member [score member ...]"}
 	}
@@ -61,7 +54,7 @@ func zadd(args []response.Value) response.Value {
 	return response.Value{Typ: "integer", Num: added}
 }
 
-func zrange(args []response.Value) response.Value {
+func Zrange(args []response.Value) response.Value {
 	if len(args) < 3 {
 		return response.Value{Typ: "error", Str: "ERR wrong number of arguments for 'zrange'"}
 	}
@@ -119,7 +112,7 @@ func zrange(args []response.Value) response.Value {
 	return response.Value{Typ: "array", Array: result}
 }
 
-func zrem(args []response.Value) response.Value {
+func Zrem(args []response.Value) response.Value {
 	if len(args) < 2 {
 		return response.Value{Typ: "error", Str: "ERR wrong number of arguments for 'zrem'"}
 	}
@@ -144,7 +137,7 @@ func zrem(args []response.Value) response.Value {
 	return response.Value{Typ: "integer", Num: removed}
 }
 
-func zcard(args []response.Value) response.Value {
+func Zcard(args []response.Value) response.Value {
 	if len(args) != 1 {
 		return response.Value{Typ: "error", Str: "ERR wrong number of arguments for 'zcard'"}
 	}
