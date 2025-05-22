@@ -47,6 +47,11 @@ func main() {
 		}
 	}
 
+	rdbPath := cfg.Get("server", "rdb_path")
+	if rdbPath == "" {
+		rdbPath = "settings/dump.rdb"
+	}
+
 	// boot
 	fmt.Printf("Listening on port :%s\n", port)
 
@@ -58,7 +63,7 @@ func main() {
 	}
 
 	// Load from snapshot before AOF
-	storage.LoadRDB("dump.rdb")
+	storage.LoadRDB(rdbPath)
 
 	aof, err := storage.NewAofWithInterval(aofPath, aofSyncInterval)
 	if err != nil {
