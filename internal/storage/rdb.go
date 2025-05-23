@@ -1,75 +1,51 @@
 package storage
 
 import (
-	"encoding/json"
-	"github.com/kenelite/gedis/internal/handle"
+	"encoding/gob"
+	"github.com/kenelite/gedis/internal/core"
 	"os"
-	"time"
+	"sync"
 )
 
-type SnapshotEntry struct {
-	Type      string
-	Key       string
-	Value     any
-	ExpiresAt int64 // Unix timestamp
-}
+var rdbMu sync.Mutex
 
-func SaveRDB(filename string) error {
-	var entries []SnapshotEntry
+func SaveRDB(path string) error {
+	rdbMu.Lock()
+	defer rdbMu.Unlock()
 
-	handle.SETsMu.RLock()
-	for k, v := range handle.SETs {
-		entries = append(entries, SnapshotEntry{
-			Type:      "string",
-			Key:       k,
-			Value:     v.Value,
-			ExpiresAt: v.ExpiresAt.Unix(),
-		})
-	}
-	handle.SETsMu.RUnlock()
-
-	// Similarly dump lists, sets, zsets, hashes, etc.
-
-	file, err := os.Create(filename)
+	f, err := os.Create(path)
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer f.Close()
 
-	return json.NewEncoder(file).Encode(entries)
+	snapshot := core.Snapshot{
+		Strings: core.CopyStrings(),
+		Lists:   core.CopyLists(),
+		//ZSets:   core.CopyZSets(),
+		//Sets:    core.CopySets(),
+	}
+
+	enc := gob.NewEncoder(f)
+	return enc.Encode(snapshot)
 }
 
-func LoadRDB(filename string) error {
-	file, err := os.Open(filename)
+func LoadRDB(path string) error {
+	rdbMu.Lock()
+	defer rdbMu.Unlock()
+
+	f, err := os.Open(path)
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer f.Close()
 
-	var entries []SnapshotEntry
-	if err := json.NewDecoder(file).Decode(&entries); err != nil {
+	var snapshot core.Snapshot
+	dec := gob.NewDecoder(f)
+	if err := dec.Decode(&snapshot); err != nil {
 		return err
 	}
 
-	now := time.Now()
-	for _, entry := range entries {
-		if entry.Type == "string" {
-			expiresAt := time.Time{}
-			if entry.ExpiresAt > 0 {
-				expiresAt = time.Unix(entry.ExpiresAt, 0)
-				if expiresAt.Before(now) {
-					continue // skip expired
-				}
-			}
-			handle.SETsMu.Lock()
-			handle.SETs[entry.Key] = handle.Entry{
-				Value:     entry.Value.(string),
-				ExpiresAt: expiresAt,
-			}
-			handle.SETsMu.Unlock()
-		}
-
-		// Handle lists, sets, etc similarly...
-	}
+	core.RestoreFromSnapshot(snapshot)
 	return nil
 }

@@ -17,7 +17,7 @@ func init() {
 
 	Register("EXPIRE", handle.Expire)
 	Register("TTL", handle.Ttl)
-	
+
 	// List
 	Register("LPUSH", handle.Lpush)
 	Register("RPUSH", handle.Rpush)
@@ -45,4 +45,7 @@ func init() {
 	Register("ZRANGE", handle.Zrange)
 	Register("ZCARD", handle.Zcard)
 
+	// Storage
+	Register("SAVE", handle.Save)
+	Register("BGSAVE", handle.BgSave)
 }

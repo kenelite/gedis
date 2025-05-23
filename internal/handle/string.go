@@ -1,21 +1,11 @@
 package handle
 
 import (
+	. "github.com/kenelite/gedis/internal/core"
 	"github.com/kenelite/gedis/internal/response"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
-)
-
-type Entry struct {
-	Value     string
-	ExpiresAt time.Time // zero time means no expiration
-}
-
-var (
-	SETs   = map[string]Entry{}
-	SETsMu = sync.RWMutex{}
 )
 
 func Set(args []response.Value) response.Value {

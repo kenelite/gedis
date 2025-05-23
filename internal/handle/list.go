@@ -1,14 +1,9 @@
 package handle
 
 import (
+	. "github.com/kenelite/gedis/internal/core"
 	"github.com/kenelite/gedis/internal/response"
 	"strconv"
-	"sync"
-)
-
-var (
-	Lists   = make(map[string][]string)
-	ListsMu sync.RWMutex
 )
 
 func Lpush(args []response.Value) response.Value {

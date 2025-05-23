@@ -1,13 +1,8 @@
 package handle
 
 import (
+	. "github.com/kenelite/gedis/internal/core"
 	"github.com/kenelite/gedis/internal/response"
-	"sync"
-)
-
-var (
-	sets   = make(map[string]map[string]struct{})
-	setsMu sync.RWMutex
 )
 
 func Sadd(args []response.Value) response.Value {
@@ -16,18 +11,18 @@ func Sadd(args []response.Value) response.Value {
 	}
 
 	key := args[0].Bulk
-	setsMu.Lock()
-	defer setsMu.Unlock()
+	SetsMu.Lock()
+	defer SetsMu.Unlock()
 
-	if sets[key] == nil {
-		sets[key] = make(map[string]struct{})
+	if Sets[key] == nil {
+		Sets[key] = make(map[string]struct{})
 	}
 
 	added := 0
 	for _, arg := range args[1:] {
 		val := arg.Bulk
-		if _, exists := sets[key][val]; !exists {
-			sets[key][val] = struct{}{}
+		if _, exists := Sets[key][val]; !exists {
+			Sets[key][val] = struct{}{}
 			added++
 		}
 	}
@@ -41,10 +36,10 @@ func Srem(args []response.Value) response.Value {
 	}
 
 	key := args[0].Bulk
-	setsMu.Lock()
-	defer setsMu.Unlock()
+	SetsMu.Lock()
+	defer SetsMu.Unlock()
 
-	members, exists := sets[key]
+	members, exists := Sets[key]
 	if !exists {
 		return response.Value{Typ: "integer", Num: 0}
 	}
@@ -59,7 +54,7 @@ func Srem(args []response.Value) response.Value {
 	}
 
 	if len(members) == 0 {
-		delete(sets, key)
+		delete(Sets, key)
 	}
 
 	return response.Value{Typ: "integer", Num: removed}
@@ -71,10 +66,10 @@ func Smembers(args []response.Value) response.Value {
 	}
 
 	key := args[0].Bulk
-	setsMu.RLock()
-	defer setsMu.RUnlock()
+	SetsMu.RLock()
+	defer SetsMu.RUnlock()
 
-	members, exists := sets[key]
+	members, exists := Sets[key]
 	if !exists {
 		return response.Value{Typ: "array", Array: []response.Value{}}
 	}
@@ -93,10 +88,10 @@ func Scard(args []response.Value) response.Value {
 	}
 
 	key := args[0].Bulk
-	setsMu.RLock()
-	defer setsMu.RUnlock()
+	SetsMu.RLock()
+	defer SetsMu.RUnlock()
 
-	members, exists := sets[key]
+	members, exists := Sets[key]
 	if !exists {
 		return response.Value{Typ: "integer", Num: 0}
 	}
@@ -109,13 +104,13 @@ func Sunion(args []response.Value) response.Value {
 		return response.Value{Typ: "error", Str: "ERR wrong number of arguments for 'SUNION'"}
 	}
 
-	setsMu.RLock()
-	defer setsMu.RUnlock()
+	SetsMu.RLock()
+	defer SetsMu.RUnlock()
 
 	union := make(map[string]struct{})
 	for _, arg := range args {
 		key := arg.Bulk
-		if members, exists := sets[key]; exists {
+		if members, exists := Sets[key]; exists {
 			for member := range members {
 				union[member] = struct{}{}
 			}
@@ -134,12 +129,12 @@ func Sinter(args []response.Value) response.Value {
 		return response.Value{Typ: "error", Str: "ERR wrong number of arguments for 'SINTER'"}
 	}
 
-	setsMu.RLock()
-	defer setsMu.RUnlock()
+	SetsMu.RLock()
+	defer SetsMu.RUnlock()
 
 	// Initialize result with first set
 	firstKey := args[0].Bulk
-	base, exists := sets[firstKey]
+	base, exists := Sets[firstKey]
 	if !exists {
 		return response.Value{Typ: "array", Array: []response.Value{}}
 	}
@@ -152,7 +147,7 @@ func Sinter(args []response.Value) response.Value {
 	// Intersect with all other sets
 	for _, arg := range args[1:] {
 		key := arg.Bulk
-		curr, exists := sets[key]
+		curr, exists := Sets[key]
 		if !exists {
 			return response.Value{Typ: "array", Array: []response.Value{}}
 		}
@@ -175,11 +170,11 @@ func Sdiff(args []response.Value) response.Value {
 		return response.Value{Typ: "error", Str: "ERR wrong number of arguments for 'SDIFF'"}
 	}
 
-	setsMu.RLock()
-	defer setsMu.RUnlock()
+	SetsMu.RLock()
+	defer SetsMu.RUnlock()
 
 	firstKey := args[0].Bulk
-	base, exists := sets[firstKey]
+	base, exists := Sets[firstKey]
 	if !exists {
 		return response.Value{Typ: "array", Array: []response.Value{}}
 	}
@@ -191,7 +186,7 @@ func Sdiff(args []response.Value) response.Value {
 
 	for _, arg := range args[1:] {
 		key := arg.Bulk
-		if s, exists := sets[key]; exists {
+		if s, exists := Sets[key]; exists {
 			for member := range s {
 				delete(diff, member)
 			}
