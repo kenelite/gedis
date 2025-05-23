@@ -1,9 +1,9 @@
 [Unit]
-Description=Gedis Server
+Description=Gedis Proxy
 After=syslog.target
 
 [Service]
-ExecStart=/usr/local/bin/gedis
+ExecStart=/usr/local/bin/gedis-proxy
 RestartSec=5s
 Restart=on-success
 

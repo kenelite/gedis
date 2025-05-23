@@ -1,25 +1,11 @@
 package handle
 
 import (
+	. "github.com/kenelite/gedis/internal/core"
 	"github.com/kenelite/gedis/internal/response"
 	"sort"
 	"strconv"
 	"strings"
-	"sync"
-)
-
-type ZSetEntry struct {
-	Member string
-	Score  float64
-}
-
-type ZSet struct {
-	entries map[string]float64
-}
-
-var (
-	ZSets   = make(map[string]*ZSet)
-	ZSetsMu sync.RWMutex
 )
 
 func Zadd(args []response.Value) response.Value {
@@ -34,7 +20,7 @@ func Zadd(args []response.Value) response.Value {
 
 	zset, exists := ZSets[key]
 	if !exists {
-		zset = &ZSet{entries: make(map[string]float64)}
+		zset = &ZSet{Entries: make(map[string]float64)}
 		ZSets[key] = zset
 	}
 
@@ -45,10 +31,10 @@ func Zadd(args []response.Value) response.Value {
 			return response.Value{Typ: "error", Str: "ERR invalid score"}
 		}
 		member := args[i+1].Bulk
-		if _, exists := zset.entries[member]; !exists {
+		if _, exists := zset.Entries[member]; !exists {
 			added++
 		}
-		zset.entries[member] = score
+		zset.Entries[member] = score
 	}
 
 	return response.Value{Typ: "integer", Num: added}
@@ -77,8 +63,8 @@ func Zrange(args []response.Value) response.Value {
 		return response.Value{Typ: "array", Array: []response.Value{}}
 	}
 
-	sorted := make([]ZSetEntry, 0, len(zset.entries))
-	for m, s := range zset.entries {
+	sorted := make([]ZSetEntry, 0, len(zset.Entries))
+	for m, s := range zset.Entries {
 		sorted = append(sorted, ZSetEntry{Member: m, Score: s})
 	}
 	sort.Slice(sorted, func(i, j int) bool {
@@ -128,8 +114,8 @@ func Zrem(args []response.Value) response.Value {
 
 	removed := 0
 	for _, arg := range args[1:] {
-		if _, exists := zset.entries[arg.Bulk]; exists {
-			delete(zset.entries, arg.Bulk)
+		if _, exists := zset.Entries[arg.Bulk]; exists {
+			delete(zset.Entries, arg.Bulk)
 			removed++
 		}
 	}
@@ -151,5 +137,5 @@ func Zcard(args []response.Value) response.Value {
 		return response.Value{Typ: "integer", Num: 0}
 	}
 
-	return response.Value{Typ: "integer", Num: len(zset.entries)}
+	return response.Value{Typ: "integer", Num: len(zset.Entries)}
 }

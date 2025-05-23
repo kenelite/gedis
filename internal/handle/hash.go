@@ -1,13 +1,8 @@
 package handle
 
 import (
+	. "github.com/kenelite/gedis/internal/core"
 	"github.com/kenelite/gedis/internal/response"
-	"sync"
-)
-
-var (
-	HSETs   = map[string]map[string]string{}
-	HSETsMu = sync.RWMutex{}
 )
 
 func Hset(args []response.Value) response.Value {

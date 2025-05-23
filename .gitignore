@@ -29,3 +29,4 @@ go.work.sum
 
 # aof file
 *.aof
+*.rdb

@@ -2,12 +2,9 @@ package storage
 
 import (
 	"bufio"
-	"fmt"
-	"github.com/kenelite/gedis/internal/executor"
 	"github.com/kenelite/gedis/internal/response"
 	"io"
 	"os"
-	"strings"
 	"sync"
 	"time"
 )
@@ -87,40 +84,18 @@ func (aof *Aof) Write(value response.Value) error {
 	return nil
 }
 
-func (aof *Aof) Load() error {
+func (aof *Aof) Load() (*response.Resp, error) {
 	aof.mu.Lock()
 	defer aof.mu.Unlock()
 
 	// Seek to the beginning of the file
 	if _, err := aof.file.Seek(0, io.SeekStart); err != nil {
-		return err
+		return nil, err
 	}
 
 	aof.rd = bufio.NewReader(aof.file)
 	respReader := response.NewResp(aof.rd)
 
-	for {
-		val, err := respReader.Read()
-		if err != nil {
-			if err == io.EOF {
-				break
-			}
-			return fmt.Errorf("failed to read AOF entry: %w", err)
-		}
+	return respReader, nil
 
-		// Expecting top-level value to be an array: [command, arg1, arg2, ...]
-		if val.Typ != "array" || len(val.Array) == 0 {
-			continue // skip invalid or malformed entries
-		}
-
-		cmdVal := val.Array[0]
-		if cmdVal.Typ != "bulk" {
-			continue // skip if command is not a bulk string
-		}
-
-		cmd := strings.ToUpper(cmdVal.Bulk)
-		_ = executor.Execute(cmd, val.Array[1:])
-	}
-
-	return nil
 }

@@ -28,24 +28,13 @@ func main() {
 		fmt.Println("Failed to load config:", err)
 		return
 	}
-
 	port := cfg.Get("server", "port")
 	if port == "" {
 		port = "6379" // default port
 	}
 
-	aofPath := cfg.Get("server", "aof_path")
-	if aofPath == "" {
-		aofPath = "settings/database.aof"
-	}
-
-	aofSyncIntervalStr := cfg.Get("server", "aof_sync_interval_sec")
-	aofSyncInterval := 1 // default 1 second
-	if aofSyncIntervalStr != "" {
-		if val, err := strconv.Atoi(aofSyncIntervalStr); err == nil {
-			aofSyncInterval = val
-		}
-	}
+	// load storage
+	aof, _ := loadStorage(cfg)
 
 	// boot
 	fmt.Printf("Listening on port :%s\n", port)
@@ -56,18 +45,6 @@ func main() {
 		fmt.Println(err)
 		return
 	}
-
-	// Load from snapshot before AOF
-	storage.LoadRDB("dump.rdb")
-
-	aof, err := storage.NewAofWithInterval(aofPath, aofSyncInterval)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	aof.Load()
-	defer aof.Close()
 
 	// creat connection pool
 	pool := connect.NewConnectionPool(5, func() (net.Conn, error) {
@@ -184,4 +161,48 @@ func handleConnection(conn net.Conn, pool *connect.ConnectionPool, aof *storage.
 
 		writer.Write(result)
 	}
+}
+
+func loadStorage(cfg *config.Config) (*storage.Aof, error) {
+
+	// Load RDB
+	rdbPath := cfg.Get("server", "rdb_path")
+	if rdbPath == "" {
+		rdbPath = "settings/database.aof"
+	}
+
+	storage.LoadRDB(rdbPath)
+
+	// Load AOF
+
+	aofPath := cfg.Get("server", "aof_path")
+	if aofPath == "" {
+		aofPath = "settings/database.aof"
+	}
+
+	aofSyncIntervalStr := cfg.Get("server", "aof_sync_interval_sec")
+	aofSyncInterval := 1 // default 1 second
+	if aofSyncIntervalStr != "" {
+		if val, err := strconv.Atoi(aofSyncIntervalStr); err == nil {
+			aofSyncInterval = val
+		}
+	}
+
+	aof, err := storage.NewAofWithInterval(aofPath, aofSyncInterval)
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
+	}
+
+	respReader, err := aof.Load()
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
+	}
+
+	executor.LoadAof(respReader)
+
+	defer aof.Close()
+
+	return aof, nil
 }
