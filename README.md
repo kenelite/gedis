@@ -139,10 +139,16 @@ go run ./cmd/gedis-cli
 
 Example:
 ```bash
-gedis> SET foo bar
+edis-cli connected. Type 'exit' to quit.
+gedis> auth admin admin123
 OK
-gedis> GET foo
-"bar"
+gedis> get zg
+china
+gedis> save
+OK
+gedis> bgsave
+Background saving started
+gedis> exit
 
 ```
 

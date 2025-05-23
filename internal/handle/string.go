@@ -26,13 +26,13 @@ func Set(args []response.Value) response.Value {
 		ttl = time.Duration(seconds) * time.Second
 	}
 
-	SETsMu.Lock()
+	SDSsMu.Lock()
 	entry := Entry{Value: value}
 	if ttl > 0 {
 		entry.ExpiresAt = time.Now().Add(ttl)
 	}
-	SETs[key] = entry
-	SETsMu.Unlock()
+	SDSs[key] = entry
+	SDSsMu.Unlock()
 
 	return response.Value{Typ: "string", Str: "OK"}
 }
@@ -44,15 +44,15 @@ func Get(args []response.Value) response.Value {
 
 	key := args[0].Bulk
 
-	SETsMu.RLock()
-	entry, ok := SETs[key]
-	SETsMu.RUnlock()
+	SDSsMu.RLock()
+	entry, ok := SDSs[key]
+	SDSsMu.RUnlock()
 
 	if !ok || (entry.ExpiresAt != (time.Time{}) && time.Now().After(entry.ExpiresAt)) {
 		// Optionally remove expired key
-		SETsMu.Lock()
-		delete(SETs, key)
-		SETsMu.Unlock()
+		SDSsMu.Lock()
+		delete(SDSs, key)
+		SDSsMu.Unlock()
 		return response.Value{Typ: "null"}
 	}
 
@@ -66,9 +66,9 @@ func Ttl(args []response.Value) response.Value {
 
 	key := args[0].Bulk
 
-	SETsMu.RLock()
-	entry, ok := SETs[key]
-	SETsMu.RUnlock()
+	SDSsMu.RLock()
+	entry, ok := SDSs[key]
+	SDSsMu.RUnlock()
 
 	if !ok {
 		return response.Value{Typ: "integer", Num: -2} // Key doesn't exist
@@ -81,9 +81,9 @@ func Ttl(args []response.Value) response.Value {
 	remaining := int(time.Until(entry.ExpiresAt).Seconds())
 	if remaining <= 0 {
 		// Expired — clean up
-		SETsMu.Lock()
-		delete(SETs, key)
-		SETsMu.Unlock()
+		SDSsMu.Lock()
+		delete(SDSs, key)
+		SDSsMu.Unlock()
 		return response.Value{Typ: "integer", Num: -2}
 	}
 
@@ -96,13 +96,13 @@ func Del(args []response.Value) response.Value {
 	}
 
 	deleted := 0
-	SETsMu.Lock()
-	defer SETsMu.Unlock()
+	SDSsMu.Lock()
+	defer SDSsMu.Unlock()
 
 	for _, arg := range args {
 		key := arg.Bulk
-		if _, exists := SETs[key]; exists {
-			delete(SETs, key)
+		if _, exists := SDSs[key]; exists {
+			delete(SDSs, key)
 			deleted++
 		}
 	}
@@ -151,12 +151,12 @@ func Decrby(args []response.Value) response.Value {
 }
 
 func incrbyImpl(key string, delta int) response.Value {
-	SETsMu.Lock()
-	defer SETsMu.Unlock()
+	SDSsMu.Lock()
+	defer SDSsMu.Unlock()
 
-	entry, exists := SETs[key]
+	entry, exists := SDSs[key]
 	if exists && !entry.ExpiresAt.IsZero() && time.Now().After(entry.ExpiresAt) {
-		delete(SETs, key)
+		delete(SDSs, key)
 		exists = false
 	}
 
@@ -170,7 +170,7 @@ func incrbyImpl(key string, delta int) response.Value {
 	}
 
 	val += delta
-	SETs[key] = Entry{
+	SDSs[key] = Entry{
 		Value:     strconv.Itoa(val),
 		ExpiresAt: entry.ExpiresAt,
 	}

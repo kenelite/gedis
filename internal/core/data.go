@@ -22,23 +22,30 @@ type ZSet struct {
 type Snapshot struct {
 	Strings map[string]Entry
 	Lists   map[string][]string
-	ZSets   map[string]ZSet
 	Sets    map[string]map[string]struct{}
+	Hsets   map[string]map[string]string
+	ZSets   map[string]*ZSet
 }
 
 var (
+
+	// String
+	SDSs   = map[string]Entry{}
+	SDSsMu = sync.RWMutex{}
+
+	// List
 	Lists   = make(map[string][]string)
 	ListsMu sync.RWMutex
 
+	// Set
 	Sets   = make(map[string]map[string]struct{})
 	SetsMu sync.RWMutex
 
+	// Hash
 	HSETs   = map[string]map[string]string{}
 	HSETsMu = sync.RWMutex{}
 
-	SETs   = map[string]Entry{}
-	SETsMu = sync.RWMutex{}
-
+	// Zset
 	ZSets   = make(map[string]*ZSet)
 	ZSetsMu sync.RWMutex
 )

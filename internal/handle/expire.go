@@ -18,16 +18,16 @@ func Expire(args []response.Value) response.Value {
 		return response.Value{Typ: "error", Str: "ERR invalid expire time"}
 	}
 
-	SETsMu.Lock()
-	defer SETsMu.Unlock()
+	SDSsMu.Lock()
+	defer SDSsMu.Unlock()
 
-	entry, exists := SETs[key]
+	entry, exists := SDSs[key]
 	if !exists {
 		return response.Value{Typ: "integer", Num: 0}
 	}
 
 	entry.ExpiresAt = time.Now().Add(time.Duration(seconds) * time.Second)
-	SETs[key] = entry
+	SDSs[key] = entry
 
 	return response.Value{Typ: "integer", Num: 1}
 }
@@ -38,13 +38,13 @@ func StartKeyExpirationLoop() {
 			time.Sleep(time.Second)
 			now := time.Now()
 
-			SETsMu.Lock()
-			for k, v := range SETs {
+			SDSsMu.Lock()
+			for k, v := range SDSs {
 				if !v.ExpiresAt.IsZero() && now.After(v.ExpiresAt) {
-					delete(SETs, k)
+					delete(SDSs, k)
 				}
 			}
-			SETsMu.Unlock()
+			SDSsMu.Unlock()
 		}
 	}()
 }
