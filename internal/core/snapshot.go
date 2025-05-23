@@ -1,11 +1,11 @@
 package core
 
 func CopyStrings() map[string]Entry {
-	SETsMu.RLock()
-	defer SETsMu.RUnlock()
+	SDSsMu.RLock()
+	defer SDSsMu.RUnlock()
 
 	copy := make(map[string]Entry)
-	for k, v := range SETs {
+	for k, v := range SDSs {
 		copy[k] = v
 	}
 	return copy
@@ -23,6 +23,36 @@ func CopyLists() map[string][]string {
 	return copy
 }
 
+func CopyHSets() map[string]map[string]string {
+	HSETsMu.RLock()
+	defer HSETsMu.RUnlock()
+
+	copy := make(map[string]map[string]string)
+	for k, v := range HSETs {
+		inner := make(map[string]string)
+		for field, val := range v {
+			inner[field] = val
+		}
+		copy[k] = inner
+	}
+	return copy
+}
+
+func CopySets() map[string]map[string]struct{} {
+	SetsMu.RLock()
+	defer SetsMu.RUnlock()
+
+	copy := make(map[string]map[string]struct{})
+	for k, v := range Sets {
+		inner := make(map[string]struct{})
+		for member := range v {
+			inner[member] = struct{}{}
+		}
+		copy[k] = inner
+	}
+	return copy
+}
+
 func CopyZSets() map[string]*ZSet {
 	ZSetsMu.RLock()
 	defer ZSetsMu.RUnlock()
@@ -34,30 +64,28 @@ func CopyZSets() map[string]*ZSet {
 	return copy
 }
 
-//func CopySets() map[string]map[string]struct{} {
-//	SETsMu.RLock()
-//	defer SETsMu.RUnlock()
-//
-//	copy := make(map[string]map[string]struct{})
-//	for k, v := range SETs {
-//		inner := make(map[string]struct{})
-//		for member := range v {
-//			inner[member] = struct{}{}
-//		}
-//		copy[k] = inner
-//	}
-//	return copy
-//}
-
 func RestoreFromSnapshot(snapshot Snapshot) {
-	SETsMu.Lock()
-	SETs = snapshot.Strings
-	SETsMu.Unlock()
+	// String
+	SDSsMu.Lock()
+	SDSs = snapshot.Strings
+	SDSsMu.Unlock()
 
+	// List
 	ListsMu.Lock()
 	Lists = snapshot.Lists
 	ListsMu.Unlock()
 
+	// Hash
+	HSETsMu.Lock()
+	HSETs = snapshot.Hsets
+	HSETsMu.Unlock()
+
+	// Set
+	ZSetsMu.Lock()
+	//ZSets = snapshot.ZSets
+	ZSetsMu.Unlock()
+
+	// ZSet
 	ZSetsMu.Lock()
 	//ZSets = snapshot.ZSets
 	ZSetsMu.Unlock()

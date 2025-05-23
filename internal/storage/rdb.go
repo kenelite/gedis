@@ -22,8 +22,9 @@ func SaveRDB(path string) error {
 	snapshot := core.Snapshot{
 		Strings: core.CopyStrings(),
 		Lists:   core.CopyLists(),
-		//ZSets:   core.CopyZSets(),
-		//Sets:    core.CopySets(),
+		Hsets:   core.CopyHSets(),
+		ZSets:   core.CopyZSets(),
+		Sets:    core.CopySets(),
 	}
 
 	enc := gob.NewEncoder(f)
