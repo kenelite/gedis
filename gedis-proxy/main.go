@@ -13,7 +13,7 @@ func main() {
 	balancer := proxy.NewBalancer(backends)
 
 	server := &proxy.ProxyServer{
-		ListenAddr: ":7379",
+		ListenAddr: ":6379",
 		Balancer:   balancer,
 	}
 
