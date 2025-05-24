@@ -40,7 +40,12 @@ func main() {
 	fmt.Printf("Listening on port :%s\n", port)
 
 	// Create a new response
-	listener, err := net.Listen("tcp", ":6379")
+	listener, err := net.Listen("tcp", ":"+port)
+	if err != nil {
+		fmt.Println("Error listening:", err)
+		return
+	}
+	defer listener.Close()
 	if err != nil {
 		fmt.Println(err)
 		return
